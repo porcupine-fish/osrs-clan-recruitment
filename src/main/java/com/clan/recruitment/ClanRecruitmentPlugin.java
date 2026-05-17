@@ -6,14 +6,17 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.Player;
 import net.runelite.api.Renderable;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.callback.Hooks;
 import net.runelite.client.config.ConfigManager;
@@ -23,6 +26,13 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 @Slf4j
 @PluginDescriptor(
@@ -46,6 +56,9 @@ public class ClanRecruitmentPlugin extends Plugin
 
 	@Inject
 	private ClanRecruitmentPanel panel;
+
+	@Inject
+	private OkHttpClient okHttpClient;
 
 	private NavigationButton navButton;
 
@@ -120,6 +133,33 @@ public class ClanRecruitmentPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onChatMessage(ChatMessage event)
+	{
+		if (!config.enabled())
+		{
+			return;
+		}
+
+		if (event.getType() != ChatMessageType.GAMEMESSAGE)
+		{
+			return;
+		}
+
+		String message = event.getMessage();
+
+		String playerName = extractAcceptingPlayerName(message);
+
+		if (playerName == null)
+		{
+			return;
+		}
+
+		log.debug("Detected invitation acceptance attempt from {}", playerName);
+
+		sendAcceptingInvitationWebhook(playerName, message);
+	}
+
+	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
 		if (!ClanRecruitmentConfig.GROUP.equals(event.getGroup()))
@@ -184,6 +224,7 @@ public class ClanRecruitmentPlugin extends Plugin
 		hiddenPlayers.clear();
 
 		String raw = config.hiddenPlayers();
+
 		if (raw == null || raw.trim().isEmpty())
 		{
 			return;
@@ -192,6 +233,7 @@ public class ClanRecruitmentPlugin extends Plugin
 		for (String part : raw.split("\\n"))
 		{
 			String name = normalizeName(part);
+
 			if (!name.isEmpty())
 			{
 				hiddenPlayers.add(name);
@@ -205,7 +247,79 @@ public class ClanRecruitmentPlugin extends Plugin
 			.sorted(String.CASE_INSENSITIVE_ORDER)
 			.collect(Collectors.joining("\n"));
 
-		configManager.setConfiguration(ClanRecruitmentConfig.GROUP, "hiddenPlayers", joined);
+		configManager.setConfiguration(
+			ClanRecruitmentConfig.GROUP,
+			"hiddenPlayers",
+			joined
+		);
+	}
+
+	private static String extractAcceptingPlayerName(String message)
+	{
+		if (message == null)
+		{
+			return null;
+		}
+
+		String suffix = " is attempting to accept your invitation!";
+
+		if (!message.endsWith(suffix))
+		{
+			return null;
+		}
+
+		String playerName = normalizeName(
+			message.substring(0, message.length() - suffix.length())
+		);
+
+		return playerName.isEmpty() ? null : playerName;
+	}
+
+	private void sendAcceptingInvitationWebhook(String playerName, String message)
+	{
+		String webhookUrl = config.webhookUrl();
+
+		if (webhookUrl == null || webhookUrl.trim().isEmpty())
+		{
+			log.debug("No webhook URL configured, skipping webhook");
+			return;
+		}
+
+		String json = "{"
+			+ "\"type\":\"CLAN_INVITATION_ACCEPTING\","
+			+ "\"playerName\":\"" + escapeJson(playerName) + "\","
+			+ "\"message\":\"" + escapeJson(message) + "\""
+			+ "}";
+
+		Request request = new Request.Builder()
+			.url(webhookUrl.trim())
+			.post(RequestBody.create(
+				MediaType.parse("application/json"),
+				json
+			))
+			.build();
+
+		okHttpClient.newCall(request).enqueue(new Callback()
+		{
+			@Override
+			public void onFailure(Call call, IOException e)
+			{
+				log.warn("Failed to send webhook", e);
+			}
+
+			@Override
+			public void onResponse(Call call, Response response)
+			{
+				response.close();
+			}
+		});
+	}
+
+	private static String escapeJson(String value)
+	{
+		return value
+			.replace("\\", "\\\\")
+			.replace("\"", "\\\"");
 	}
 
 	private static String normalizeName(String name)
@@ -223,10 +337,15 @@ public class ClanRecruitmentPlugin extends Plugin
 	private static BufferedImage createIcon()
 	{
 		BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+
 		Graphics2D g = image.createGraphics();
+
 		try
 		{
-			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setRenderingHint(
+				RenderingHints.KEY_ANTIALIASING,
+				RenderingHints.VALUE_ANTIALIAS_ON
+			);
 
 			g.setColor(new Color(40, 40, 40, 220));
 			g.fillRoundRect(0, 0, 16, 16, 4, 4);

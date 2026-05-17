@@ -29,4 +29,13 @@ public interface ClanRecruitmentConfig extends Config
 	{
 		return "";
 	}
+	@ConfigItem(
+		keyName = "webhookUrl",
+		name = "Webhook URL (optional)",
+		description = "Optional URL to send recruitment acceptance events to"
+	)
+	default String webhookUrl()
+	{
+		return "";
+	}
 }
