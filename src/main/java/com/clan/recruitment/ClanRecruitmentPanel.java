@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -22,7 +21,7 @@ public class ClanRecruitmentPanel extends PluginPanel
 	private final ClanRecruitmentPlugin plugin;
 	private final ClanRecruitmentConfig config;
 
-	private final JCheckBox enabledCheckBox = new JCheckBox("Enable clan recruitment hide");
+	private final JButton toggleButton = new JButton();
 	private final JTextArea hiddenUsersArea = new JTextArea();
 	private final JButton clearButton = new JButton("Clear all");
 
@@ -38,11 +37,11 @@ public class ClanRecruitmentPanel extends PluginPanel
 		setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 
-		enabledCheckBox.setSelected(config.enabled());
-		enabledCheckBox.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		enabledCheckBox.setForeground(Color.WHITE);
-		enabledCheckBox.addActionListener(e ->
-			plugin.setFeatureEnabled(enabledCheckBox.isSelected()));
+		toggleButton.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		toggleButton.setForeground(Color.WHITE);
+		toggleButton.setFocusPainted(false);
+		toggleButton.addActionListener(e -> plugin.setFeatureEnabled(!config.enabled()));
+		updateToggleButtonText(config.enabled());
 
 		hiddenUsersArea.setEditable(false);
 		hiddenUsersArea.setLineWrap(true);
@@ -72,7 +71,7 @@ public class ClanRecruitmentPanel extends PluginPanel
 
 		JPanel top = new JPanel(new GridLayout(0, 1, 0, 6));
 		top.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		top.add(enabledCheckBox);
+		top.add(toggleButton);
 
 		add(top, BorderLayout.NORTH);
 		add(scrollPane, BorderLayout.CENTER);
@@ -81,11 +80,16 @@ public class ClanRecruitmentPanel extends PluginPanel
 		refresh(plugin.getHiddenPlayers());
 	}
 
+	private void updateToggleButtonText(boolean enabled)
+	{
+		toggleButton.setText(enabled ? "Disable hiding players" : "Enable hiding players");
+	}
+
 	public void refresh(Collection<String> names)
 	{
 		SwingUtilities.invokeLater(() ->
 		{
-			enabledCheckBox.setSelected(config.enabled());
+			updateToggleButtonText(config.enabled());
 
 			if (names.isEmpty())
 			{

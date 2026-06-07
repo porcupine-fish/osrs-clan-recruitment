@@ -1,10 +1,6 @@
 package com.clan.recruitment;
 
 import com.google.inject.Provides;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Collection;
@@ -26,6 +22,7 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.util.ImageUtil;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -77,9 +74,11 @@ public class ClanRecruitmentPlugin extends Plugin
 	{
 		loadHiddenPlayers();
 
+		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
+
 		navButton = NavigationButton.builder()
 			.tooltip("Clan Recruitment")
-			.icon(createIcon())
+			.icon(icon)
 			.priority(5)
 			.panel(panel)
 			.build();
@@ -334,31 +333,4 @@ public class ClanRecruitmentPlugin extends Plugin
 			.trim();
 	}
 
-	private static BufferedImage createIcon()
-	{
-		BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-
-		Graphics2D g = image.createGraphics();
-
-		try
-		{
-			g.setRenderingHint(
-				RenderingHints.KEY_ANTIALIASING,
-				RenderingHints.VALUE_ANTIALIAS_ON
-			);
-
-			g.setColor(new Color(40, 40, 40, 220));
-			g.fillRoundRect(0, 0, 16, 16, 4, 4);
-
-			g.setColor(new Color(220, 220, 220));
-			g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 10));
-			g.drawString("CR", 1, 12);
-		}
-		finally
-		{
-			g.dispose();
-		}
-
-		return image;
-	}
 }
