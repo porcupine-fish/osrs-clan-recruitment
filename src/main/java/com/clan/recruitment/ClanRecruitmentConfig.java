@@ -11,7 +11,7 @@ public interface ClanRecruitmentConfig extends Config
 
 	@ConfigItem(
 		keyName = "enabled",
-		name = "Enable clan recruitment hide",
+		name = "Enable hiding of players",
 		description = "Hide players when their Recruit menu option is clicked",
 		position = 0
 	)
@@ -22,7 +22,7 @@ public interface ClanRecruitmentConfig extends Config
 
 	@ConfigItem(
 		keyName = "hiddenPlayers",
-		name = "Hidden players",
+		name = "Hidden players list",
 		description = "Persisted list of hidden player names"
 	)
 	default String hiddenPlayers()
