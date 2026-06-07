@@ -18,8 +18,9 @@ A tiny plugin to optimise clan recruitment and to capture clan recruitment game 
 ```
 {
   "type": "CLAN_INVITATION_ACCEPTING",
-  "playerName": "PlayerX",
-  "message": "PlayerX is attempting to accept your invitation!"
+  "playerName": "SomeRecruit",
+  "inviterName": "YourUsername",
+  "message": "SomeRecruit is attempting to accept your invitation!"
 }
 ```
 
